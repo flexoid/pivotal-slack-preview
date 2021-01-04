@@ -11,7 +11,7 @@ import (
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 
-	"github.com/flexoid/slack-pivotalbot-go/internal/tracker"
+	"github.com/flexoid/slack-pivotalbot-go/internal/messages"
 )
 
 // You more than likely want your "Bot User OAuth Access Token" which starts with "xoxb-"
@@ -84,7 +84,7 @@ func main() {
 func HandleMessage(event *slackevents.MessageEvent) {
 	fmt.Printf("%+v\n", event)
 
-	ids := tracker.ExtractStoriesFromMessage(event.Text)
+	ids := messages.ExtractStoriesFromMessage(event.Text)
 	fmt.Printf("%+v\n", ids)
 
 	if len(ids) == 0 {
@@ -98,7 +98,7 @@ func HandleMessage(event *slackevents.MessageEvent) {
 		return
 	}
 
-	message := tracker.MessageForStories([]*pivotal.Story{story})
+	message := messages.MessageForStories([]*pivotal.Story{story})
 
 	// var options []slack.MsgOption
 	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
