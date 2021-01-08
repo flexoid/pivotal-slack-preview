@@ -1,0 +1,140 @@
+# Inspired by https://github.com/golangci/golangci-lint/blob/master/.golangci.yml
+
+linters-settings:
+  dupl:
+    threshold: 200
+  exhaustive:
+    default-signifies-exhaustive: false
+  funlen:
+    lines: 100
+    statements: 50
+  gocognit:
+    min-complexity: 15
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+  gocyclo:
+    min-complexity: 15
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+  golint:
+    min-confidence: 0
+  gomnd:
+    settings:
+      mnd:
+        # Don't include the "operation" and "assign".
+        checks: argument,case,condition,return
+  govet:
+    check-shadowing: true
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+  lll:
+    line-length: 140
+  nolintlint:
+    # Ensure that nolint directives are all used. Default is true.
+    allow-unused: false
+    # Require nolint directives to mention the specific linter being suppressed.
+    require-specific: true
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exhaustive
+    - exportloopref
+    - funlen
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - goimports
+    - golint
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    - lll
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - scopelint
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - wsl
+
+  # Don't enable:
+  # - asciicheck
+  # - gochecknoglobals
+  # - godox
+  # - goerr113
+  # - gofumpt
+  # - goheader
+  # - gomodguard
+  # - maligned
+  # - nestif
+  # - prealloc
+  # - testpackage
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source.
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gomnd
+
+    - path: _test\.go
+      linters:
+        - gocritic
+      text: "importShadow: shadow of imported from 'github.com/stretchr/testify/assert' package 'assert'"
+
+    - linters:
+        - gocritic
+      text: "importShadow: shadow of imported from 'github.com/rs/zerolog/log' package 'log'"
+
+    # https://github.com/go-critic/go-critic/issues/926
+    - linters:
+        - gocritic
+      text: "unnecessaryDefer:"
+
+run:
+  skip-dirs:
+    - testdata
+    - vendor
+
+  skip-dirs-use-default: false
