@@ -11,13 +11,12 @@ import (
 )
 
 func ExtractStoriesFromMessage(text string) []int {
-	regex := regexp.MustCompile(`pivotaltracker.com(?:\/n)?\/(?:story\/show|projects\/\d+\/stories)\/(\d+)`)
+	regex := regexp.MustCompile(`pivotaltracker\.com(?:\/n)?\/(?:story\/show|projects\/\d+\/stories)\/(\d+)`)
 	matches := regex.FindAllStringSubmatch(text, -1)
 
 	var ids []int
 
 	for _, match := range matches {
-
 		matchID, err := strconv.Atoi(match[1])
 		if err != nil {
 			break
@@ -51,21 +50,12 @@ func MessageForStories(stories []*pivotal.Story) slack.Message {
 		headerSection := slack.NewSectionBlock(headerText, nil, slack.NewAccessory(headerButton))
 		sections = append(sections, headerSection)
 
-		// titleText := slack.NewTextBlockObject(slack.MarkdownType, story.Name, false, false)
-		// titleButton := slack.NewButtonBlockElement("expand", "", slack.NewTextBlockObject(slack.PlainTextType, "Expand", false, false))
-		// titleSection := slack.NewSectionBlock(titleText, nil, slack.NewAccessory(titleButton))
-		// sections = append(sections, titleSection)
-
 		stateField := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*State:*\n%s", story.State), false, false)
 		labelsField := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Labels:*\n%s", storyLabels(story)), false, false)
 
 		fields := []*slack.TextBlockObject{stateField, labelsField}
 		fieldsSection := slack.NewSectionBlock(nil, fields, nil)
 		sections = append(sections, fieldsSection)
-
-		// descriptionText := slack.NewTextBlockObject(slack.MarkdownType, story.Description, false, false)
-		// descriptionSection := slack.NewSectionBlock(descriptionText, nil, nil)
-		// sections = append(sections, descriptionSection)
 
 		if len(stories) > 1 {
 			sections = append(sections, slack.NewDividerBlock())
@@ -101,5 +91,6 @@ func storyLabels(story *pivotal.Story) string {
 	for _, label := range story.Labels {
 		names = append(names, label.Name)
 	}
+
 	return strings.Join(names, ", ")
 }
