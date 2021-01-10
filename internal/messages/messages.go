@@ -10,6 +10,8 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const ActionShowMore = "show_more"
+
 func ExtractStoriesFromMessage(text string) []int {
 	regex := regexp.MustCompile(`pivotaltracker\.com(?:\/n)?\/(?:story\/show|projects\/\d+\/stories)\/(\d+)`)
 	matches := regex.FindAllStringSubmatch(text, -1)
@@ -46,12 +48,13 @@ func MessageForStories(stories []*pivotal.Story) slack.Message {
 
 	for _, story := range stories {
 		headerText := slack.NewTextBlockObject(slack.MarkdownType, storyHeader(story), false, false)
-		headerButton := slack.NewButtonBlockElement("expand", "", slack.NewTextBlockObject(slack.PlainTextType, "Expand", false, false))
+		headerButton := slack.NewButtonBlockElement(ActionShowMore, fmt.Sprintf("%d", story.ID),
+			slack.NewTextBlockObject(slack.PlainTextType, "Show more", false, false))
 		headerSection := slack.NewSectionBlock(headerText, nil, slack.NewAccessory(headerButton))
 		sections = append(sections, headerSection)
 
-		stateField := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*State:*\n%s", story.State), false, false)
-		labelsField := slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Labels:*\n%s", storyLabels(story)), false, false)
+		stateField := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("*State:*\n%s", story.State), false, false)
+		labelsField := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf("*Labels:*\n%s", storyLabels(story)), false, false)
 
 		fields := []*slack.TextBlockObject{stateField, labelsField}
 		fieldsSection := slack.NewSectionBlock(nil, fields, nil)
@@ -61,6 +64,18 @@ func MessageForStories(stories []*pivotal.Story) slack.Message {
 			sections = append(sections, slack.NewDividerBlock())
 		}
 	}
+
+	return slack.NewBlockMessage(sections...)
+}
+
+func DescriptionMessage(story *pivotal.Story) slack.Message {
+	var sections []slack.Block
+
+	headerText := slack.NewTextBlockObject(slack.MarkdownType, storyHeader(story), false, false)
+	sections = append(sections, slack.NewSectionBlock(headerText, nil, nil))
+
+	descriptionText := slack.NewTextBlockObject(slack.MarkdownType, story.Description, false, false)
+	sections = append(sections, slack.NewSectionBlock(descriptionText, nil, nil))
 
 	return slack.NewBlockMessage(sections...)
 }

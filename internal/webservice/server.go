@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/Logiraptor/go-pivotaltracker/v5/pivotal"
 	"github.com/slack-go/slack"
@@ -70,7 +71,11 @@ func (s *Server) interactiveHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Could not parse action response JSON: %v", err)
 	}
 
-	fmt.Printf("Payload: %+v\n", payload)
+	for _, blockAction := range payload.ActionCallback.BlockActions {
+		if blockAction.ActionID == messages.ActionShowMore {
+			s.handleExpandAction(payload, blockAction)
+		}
+	}
 }
 
 func (s *Server) handleSlackEvent(event *slackevents.EventsAPIEvent, body []byte, w http.ResponseWriter) {
@@ -124,9 +129,9 @@ func (s *Server) handleMessage(event *slackevents.MessageEvent) {
 	}
 
 	message := messages.MessageForStories(stories)
-
 	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
 
+	// Respond to thread if message is from thread.
 	if len(event.ThreadTimeStamp) > 0 {
 		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
 	}
@@ -138,4 +143,31 @@ func (s *Server) handleMessage(event *slackevents.MessageEvent) {
 	}
 
 	fmt.Printf("%+v\n", stories)
+}
+
+func (s *Server) handleExpandAction(payload slack.InteractionCallback, blockAction *slack.BlockAction) {
+	pivotalStoryID, err := strconv.Atoi(blockAction.Value)
+	if err != nil {
+		fmt.Printf("Unexpected value for expand block action: %v", blockAction.Value)
+	}
+
+	story, _, err := s.PivotalClient.Stories.GetByID(pivotalStoryID)
+	if err != nil {
+		fmt.Printf("Failed to fetch story: %s", err)
+		return
+	}
+
+	message := messages.DescriptionMessage(story)
+	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
+
+	// Respond to thread if message is from thread.
+	if len(payload.Message.ThreadTimestamp) > 0 {
+		options = append(options, slack.MsgOptionTS(payload.Message.ThreadTimestamp))
+	}
+
+	_, err = s.SlackClient.PostEphemeral(payload.Channel.ID, payload.User.ID, options...)
+	if err != nil {
+		fmt.Printf("%s", err)
+		return
+	}
 }
