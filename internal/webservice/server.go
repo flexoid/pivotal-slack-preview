@@ -102,10 +102,7 @@ func (s *Server) handleSlackEvent(event *slackevents.EventsAPIEvent, body []byte
 }
 
 func (s *Server) handleMessage(event *slackevents.MessageEvent) {
-	fmt.Printf("%+v\n", event)
-
 	ids := messages.ExtractStoriesFromMessage(event.Text)
-	fmt.Printf("%+v\n", ids)
 
 	if len(ids) == 0 {
 		return
@@ -141,8 +138,6 @@ func (s *Server) handleMessage(event *slackevents.MessageEvent) {
 		fmt.Printf("%s", err)
 		return
 	}
-
-	fmt.Printf("%+v\n", stories)
 }
 
 func (s *Server) handleExpandAction(payload slack.InteractionCallback, blockAction *slack.BlockAction) {
