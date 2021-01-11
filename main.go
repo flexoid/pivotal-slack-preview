@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"time"
 
 	"github.com/Logiraptor/go-pivotaltracker/v5/pivotal"
 	"github.com/rs/zerolog"
@@ -15,7 +14,7 @@ import (
 var version = "vX.Y.Z"
 
 func main() {
-	setupLogger()
+	logger := setupLogger()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -33,16 +32,15 @@ func main() {
 		SlackClient:        slackClient,
 		SlackSigningSecret: signingSecret,
 		PivotalClient:      pivotalClient,
+		Logger:             &logger,
 	}
 
-	log.Info().Msgf("Starting slack-pivotalbot %s", version)
+	logger.Info().Msgf("Starting slack-pivotalbot %s", version)
 
 	server.Start()
 }
 
-func setupLogger() {
-	zerolog.TimeFieldFormat = time.RFC3339Nano
-	zerolog.TimestampFunc = func() time.Time {
-		return time.Now().UTC()
-	}
+//
+func setupLogger() zerolog.Logger {
+	return zerolog.New(os.Stdout).With().Timestamp().Logger()
 }

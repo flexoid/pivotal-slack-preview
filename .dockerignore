@@ -11,3 +11,6 @@ vendor/
 
 # Exclude git history and configuration.
 .gitignore
+
+# Executable.
+/slack-pivotalbot

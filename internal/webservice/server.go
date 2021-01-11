@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/Logiraptor/go-pivotaltracker/v5/pivotal"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
+	"github.com/yfuruyama/crzerolog"
 
 	"github.com/flexoid/slack-pivotalbot-go/internal/messages"
 )
@@ -20,13 +23,19 @@ type Server struct {
 	SlackClient        *slack.Client
 	SlackSigningSecret string
 	PivotalClient      *pivotal.Client
+	Logger             *zerolog.Logger
 }
 
 func (s *Server) Start() {
-	http.HandleFunc("/events-endpoint", s.eventsHandler)
-	http.HandleFunc("/interactive-endpoint", s.interactiveHandler)
+	// The `crzerolog` library calls `With().Timestamp()` to the provided logger
+	// which leads to double timestamp in the logs. So providing clear log instance here.
+	rootLogger := zerolog.New(os.Stdout)
+	loggingMiddleware := crzerolog.InjectLogger(&rootLogger)
 
-	log.Info().Msgf("Listening on port %s", s.Port)
+	http.Handle("/events-endpoint", loggingMiddleware(http.HandlerFunc(s.eventsHandler)))
+	http.Handle("/interactive-endpoint", loggingMiddleware(http.HandlerFunc(s.interactiveHandler)))
+
+	s.Logger.Info().Msgf("Listening on port %s", s.Port)
 	http.ListenAndServe(":"+s.Port, nil)
 }
 
@@ -71,7 +80,7 @@ func (s *Server) eventsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.handleSlackEvent(&eventsAPIEvent, body, w)
+	s.handleSlackEvent(r.Context(), &eventsAPIEvent, body, w)
 }
 
 func (s *Server) interactiveHandler(w http.ResponseWriter, r *http.Request) {
@@ -83,8 +92,10 @@ func (s *Server) interactiveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger := log.With().Str("trigger_id", payload.TriggerID).Logger()
-	ctx := logger.WithContext(context.TODO())
+	ctx := r.Context()
+	log.Ctx(ctx).UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Str("trigger_id", payload.TriggerID)
+	})
 
 	for _, blockAction := range payload.ActionCallback.BlockActions {
 		if blockAction.ActionID == messages.ActionShowMore {
@@ -93,7 +104,7 @@ func (s *Server) interactiveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleSlackEvent(event *slackevents.EventsAPIEvent, body []byte, w http.ResponseWriter) {
+func (s *Server) handleSlackEvent(ctx context.Context, event *slackevents.EventsAPIEvent, body []byte, w http.ResponseWriter) {
 	if event.Type == slackevents.URLVerification {
 		var r *slackevents.ChallengeResponse
 		err := json.Unmarshal(body, &r)
@@ -120,8 +131,9 @@ func (s *Server) handleSlackEvent(event *slackevents.EventsAPIEvent, body []byte
 			return
 		}
 
-		logger := log.With().Str("event_id", callbackEvent.EventID).Logger()
-		ctx := logger.WithContext(context.TODO())
+		log.Ctx(ctx).UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("event_id", callbackEvent.EventID)
+		})
 
 		innerEvent := event.InnerEvent
 		switch ev := innerEvent.Data.(type) {
