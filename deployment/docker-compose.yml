@@ -7,5 +7,5 @@ services:
       - SLACK_SIGNING_SECRET
       - PIVOTAL_TOKEN
     ports:
-      - "19374:8080"
+      - "127.0.0.1:19374:8080"
     restart: always
