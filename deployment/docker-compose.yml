@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  web:
+    image: registry.gitlab.com/flexoid/slack-pivotalbot-go/main
+    environment:
+      - SLACK_TOKEN
+      - SLACK_SIGNING_SECRET
+      - PIVOTAL_TOKEN
+    ports:
+      - "19374:8080"
+    restart: always
