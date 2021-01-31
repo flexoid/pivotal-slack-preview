@@ -6,7 +6,7 @@ build:
 
 .PRONY: build_image_latest
 build_image_latest:
-	docker build -f build/Dockerfile -t flexoid/slack-pivotalbot-go .
+	docker build -f build/Dockerfile -t flexoid/pivotal-slack-preview .
 
 .PHONY: run
 run: build

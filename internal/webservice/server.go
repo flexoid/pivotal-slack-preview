@@ -15,7 +15,7 @@ import (
 	"github.com/slack-go/slack/slackevents"
 	"github.com/yfuruyama/crzerolog"
 
-	"github.com/flexoid/slack-pivotalbot-go/internal/messages"
+	"github.com/flexoid/pivotal-slack-preview/internal/messages"
 )
 
 type Server struct {

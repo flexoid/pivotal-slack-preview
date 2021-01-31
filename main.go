@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/slack-go/slack"
 
-	"github.com/flexoid/slack-pivotalbot-go/internal/webservice"
+	"github.com/flexoid/pivotal-slack-preview/internal/webservice"
 )
 
 var version = "vX.Y.Z"

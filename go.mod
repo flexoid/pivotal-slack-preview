@@ -1,4 +1,4 @@
-module github.com/flexoid/slack-pivotalbot-go
+module github.com/flexoid/pivotal-slack-preview
 
 go 1.15
 
