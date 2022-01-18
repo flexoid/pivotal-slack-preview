@@ -3,7 +3,7 @@ package webservice
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -36,13 +36,17 @@ func (s *Server) Start() {
 	http.Handle("/interactive-endpoint", loggingMiddleware(http.HandlerFunc(s.interactiveHandler)))
 
 	s.Logger.Info().Msgf("Listening on port %s", s.Port)
-	http.ListenAndServe(":"+s.Port, nil)
+
+	err := http.ListenAndServe(":"+s.Port, nil)
+	if err != nil {
+		s.Logger.Fatal().Err(err).Msgf(err.Error())
+	}
 }
 
 func (s *Server) eventsHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not read event body")
 		w.WriteHeader(http.StatusBadRequest)
@@ -117,7 +121,12 @@ func (s *Server) handleSlackEvent(ctx context.Context, event *slackevents.Events
 		}
 
 		w.Header().Set("Content-Type", "text")
-		w.Write([]byte(r.Challenge))
+
+		_, err = w.Write([]byte(r.Challenge))
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write response")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 
 	if event.Type == slackevents.CallbackEvent {
@@ -136,8 +145,7 @@ func (s *Server) handleSlackEvent(ctx context.Context, event *slackevents.Events
 		})
 
 		innerEvent := event.InnerEvent
-		switch ev := innerEvent.Data.(type) {
-		case *slackevents.MessageEvent:
+		if ev, ok := innerEvent.Data.(*slackevents.MessageEvent); ok {
 			go s.handleMessage(ctx, ev)
 		}
 	}
@@ -155,7 +163,7 @@ func (s *Server) handleMessage(ctx context.Context, event *slackevents.MessageEv
 	var stories []*pivotal.Story
 
 	for _, id := range ids {
-		story, _, err := s.PivotalClient.Stories.GetByID(id)
+		story, _, err := s.PivotalClient.Stories.GetByID(id) //nolint:bodyclose // False positive
 		if err != nil {
 			log.Ctx(ctx).Warn().Err(err).Msgf("Cannot fetch pivotal story %d", id)
 			continue
@@ -192,7 +200,7 @@ func (s *Server) handleExpandAction(ctx context.Context, payload *slack.Interact
 		log.Ctx(ctx).Warn().Err(err).Msgf("Unexpected value for expand block action: %v", blockAction.Value)
 	}
 
-	story, _, err := s.PivotalClient.Stories.GetByID(pivotalStoryID)
+	story, _, err := s.PivotalClient.Stories.GetByID(pivotalStoryID) //nolint:bodyclose // False positive
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot fetch pivotal story %d", pivotalStoryID)
 		return
