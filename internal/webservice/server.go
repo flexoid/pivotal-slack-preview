@@ -87,7 +87,7 @@ func (s *Server) eventsHandler(w http.ResponseWriter, r *http.Request) {
 	s.handleSlackEvent(r.Context(), &eventsAPIEvent, body, w)
 }
 
-func (s *Server) interactiveHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) interactiveHandler(_ http.ResponseWriter, r *http.Request) {
 	var payload slack.InteractionCallback
 	err := json.Unmarshal([]byte(r.FormValue("payload")), &payload)
 

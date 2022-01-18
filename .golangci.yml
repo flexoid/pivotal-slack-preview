@@ -26,8 +26,6 @@ linters-settings:
     min-complexity: 15
   goimports:
     local-prefixes: github.com/golangci/golangci-lint
-  golint:
-    min-confidence: 0
   gomnd:
     settings:
       mnd:
@@ -49,6 +47,37 @@ linters-settings:
     allow-unused: false
     # Require nolint directives to mention the specific linter being suppressed.
     require-specific: true
+  revive:
+    # https://github.com/mgechev/revive#recommended-configuration
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
 linters:
   # please, do not use `enable-all`: it's deprecated and will be removed soon.
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
@@ -71,21 +100,19 @@ linters:
     - godot
     - gofmt
     - goimports
-    - golint
     - gomnd
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
     - nakedret
     - noctx
     - nolintlint
+    - revive
     - rowserrcheck
-    - scopelint
     - sqlclosecheck
     - staticcheck
     - structcheck
@@ -97,19 +124,6 @@ linters:
     - varcheck
     - whitespace
     - wsl
-
-  # Don't enable:
-  # - asciicheck
-  # - gochecknoglobals
-  # - godox
-  # - goerr113
-  # - gofumpt
-  # - goheader
-  # - gomodguard
-  # - maligned
-  # - nestif
-  # - prealloc
-  # - testpackage
 
 issues:
   # Excluding configuration per-path, per-linter, per-text and per-source.
