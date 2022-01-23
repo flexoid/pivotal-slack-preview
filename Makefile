@@ -2,7 +2,7 @@ VERSION := $(shell git describe --always --tags --dirty)
 
 .PHONY: build
 build:
-	go build -v -ldflags="-X main.version=${VERSION}" -o slack-pivotalbot
+	go build -v -ldflags="-X main.version=${VERSION}" -o pivotal-slack-preview
 
 .PRONY: build_image_latest
 build_image_latest:
