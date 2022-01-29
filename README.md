@@ -34,10 +34,13 @@ are posted to the channels.
 
 Environment variables:
 
-* `PORT`
-* `SLACK_TOKEN`
-* `SLACK_SIGNING_SECRET`
-* `PIVOTAL_TOKEN`
+| Env                    | Description                                                                    | Default |
+| ---------------------- | ------------------------------------------------------------------------------ | ------- |
+| `SLACK_TOKEN`          | Bot User OAuth Access Token                                                    | -       |
+| `SLACK_SIGNING_SECRET` | Slack Signing Secret                                                           | -       |
+| `PIVOTAL_TOKEN`        | Pivotal Tracker API token                                                      | -       |
+| `PORT`                 | HTTP port to listen                                                            | 8080    |
+| `STORIES_COUNT_TO_ASK` | Number of stories in a single message to start asking if needs to post preview | 2       |
 
 ## Deployment
 

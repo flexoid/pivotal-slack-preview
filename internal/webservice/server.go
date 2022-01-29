@@ -24,6 +24,7 @@ type Server struct {
 	SlackSigningSecret string
 	PivotalClient      *pivotal.Client
 	Logger             *zerolog.Logger
+	StoriesCountToAsk  int
 }
 
 func (s *Server) Start() {
@@ -242,8 +243,7 @@ func (s *Server) postPreview(ctx context.Context, storyIDs []int, channel, threa
 }
 
 func (s *Server) needToAskForPreview(ids []int) bool {
-	// TODO: Make configurable.
-	return len(ids) > 1
+	return len(ids) >= s.StoriesCountToAsk
 }
 
 func (s *Server) askForPreview(ctx context.Context, event *slackevents.MessageEvent, ids []int) {
