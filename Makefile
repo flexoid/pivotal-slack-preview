@@ -10,7 +10,7 @@ build_image_latest:
 
 .PHONY: run
 run: build
-	./slack-pivotalbot
+	./pivotal-slack-preview
 
 .PHONY: test
 test:

@@ -159,39 +159,7 @@ func (s *Server) handleMessage(ctx context.Context, event *slackevents.MessageEv
 	}
 
 	log.Ctx(ctx).Info().Ints("stories", ids).Msg("Received message with pivotal stories mentioned")
-
-	var stories []*pivotal.Story
-
-	for _, id := range ids {
-		story, _, err := s.PivotalClient.Stories.GetByID(id) //nolint:bodyclose // False positive
-		if err != nil {
-			log.Ctx(ctx).Warn().Err(err).Msgf("Cannot fetch pivotal story %d", id)
-			continue
-		}
-
-		stories = append(stories, story)
-	}
-
-	if len(stories) == 0 {
-		log.Ctx(ctx).Debug().Msg("No mentioned stories were fetched successfully, nothing to post")
-		return
-	}
-
-	message := messages.MessageForStories(stories)
-	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
-
-	// Respond to thread if message is from thread.
-	if len(event.ThreadTimeStamp) > 0 {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
-	}
-
-	_, _, err := s.SlackClient.PostMessage(event.Channel, options...)
-	if err != nil {
-		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post slack message in response to mentioned stories")
-		return
-	}
-
-	log.Ctx(ctx).Info().Msg("Slack message with mentioned stories is posted")
+	s.postPreview(ctx, ids, event)
 }
 
 func (s *Server) handleExpandAction(ctx context.Context, payload *slack.InteractionCallback, blockAction *slack.BlockAction) {
@@ -221,4 +189,39 @@ func (s *Server) handleExpandAction(ctx context.Context, payload *slack.Interact
 	}
 
 	log.Ctx(ctx).Info().Msg("Ephemeral slack message with details is posted")
+}
+
+func (s *Server) postPreview(ctx context.Context, storyIDs []int, event *slackevents.MessageEvent) {
+	var stories []*pivotal.Story
+
+	for _, id := range storyIDs {
+		story, _, err := s.PivotalClient.Stories.GetByID(id) //nolint:bodyclose // False positive
+		if err != nil {
+			log.Ctx(ctx).Warn().Err(err).Msgf("Cannot fetch pivotal story %d", id)
+			continue
+		}
+
+		stories = append(stories, story)
+	}
+
+	if len(stories) == 0 {
+		log.Ctx(ctx).Debug().Msg("No mentioned stories were fetched successfully, nothing to post")
+		return
+	}
+
+	message := messages.MessageForStories(stories)
+	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
+
+	// Respond to thread if message is from thread.
+	if len(event.ThreadTimeStamp) > 0 {
+		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
+	}
+
+	_, _, err := s.SlackClient.PostMessage(event.Channel, options...)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post slack message in response to mentioned stories")
+		return
+	}
+
+	log.Ctx(ctx).Info().Msg("Slack message with mentioned stories is posted")
 }
