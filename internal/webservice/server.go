@@ -174,15 +174,9 @@ func (s *Server) handleExpandAction(ctx context.Context, payload *slack.Interact
 		return
 	}
 
-	message := messages.DescriptionMessage(story)
-	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
+	messageOptions := messages.DescriptionMessage(story, payload.Message.ThreadTimestamp)
 
-	// Respond to thread if message is from thread.
-	if len(payload.Message.ThreadTimestamp) > 0 {
-		options = append(options, slack.MsgOptionTS(payload.Message.ThreadTimestamp))
-	}
-
-	_, err = s.SlackClient.PostEphemeral(payload.Channel.ID, payload.User.ID, options...)
+	_, err = s.SlackClient.PostEphemeral(payload.Channel.ID, payload.User.ID, messageOptions...)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post ephemeral slack message with more info")
 		return
@@ -209,15 +203,9 @@ func (s *Server) postPreview(ctx context.Context, storyIDs []int, event *slackev
 		return
 	}
 
-	message := messages.MessageForStories(stories)
-	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
+	messageOptions := messages.MessageForStories(stories, event.ThreadTimeStamp)
 
-	// Respond to thread if message is from thread.
-	if len(event.ThreadTimeStamp) > 0 {
-		options = append(options, slack.MsgOptionTS(event.ThreadTimeStamp))
-	}
-
-	_, _, err := s.SlackClient.PostMessage(event.Channel, options...)
+	_, _, err := s.SlackClient.PostMessage(event.Channel, messageOptions...)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post slack message in response to mentioned stories")
 		return

@@ -43,7 +43,7 @@ func ExtractStoriesFromMessage(text string) []int {
 	return ids
 }
 
-func MessageForStories(stories []*pivotal.Story) slack.Message {
+func MessageForStories(stories []*pivotal.Story, threadTimeStamp string) []slack.MsgOption {
 	var sections []slack.Block
 
 	for _, story := range stories {
@@ -65,10 +65,12 @@ func MessageForStories(stories []*pivotal.Story) slack.Message {
 		}
 	}
 
-	return slack.NewBlockMessage(sections...)
+	message := slack.NewBlockMessage(sections...)
+
+	return messageOptions(&message, threadTimeStamp)
 }
 
-func DescriptionMessage(story *pivotal.Story) slack.Message {
+func DescriptionMessage(story *pivotal.Story, threadTimeStamp string) []slack.MsgOption {
 	var sections []slack.Block
 
 	headerText := slack.NewTextBlockObject(slack.MarkdownType, storyHeader(story), false, false)
@@ -76,8 +78,14 @@ func DescriptionMessage(story *pivotal.Story) slack.Message {
 
 	descriptionText := slack.NewTextBlockObject(slack.MarkdownType, story.Description, false, false)
 	sections = append(sections, slack.NewSectionBlock(descriptionText, nil, nil))
+	message := slack.NewBlockMessage(sections...)
 
-	return slack.NewBlockMessage(sections...)
+	return messageOptions(&message, threadTimeStamp)
+}
+
+	message := slack.NewBlockMessage(sections...)
+
+	return messageOptions(&message, threadTimeStamp)
 }
 
 func storyHeader(story *pivotal.Story) string {
@@ -108,4 +116,15 @@ func storyLabels(story *pivotal.Story) string {
 	}
 
 	return strings.Join(names, ", ")
+}
+
+func messageOptions(message *slack.Message, threadTimeStamp string) []slack.MsgOption {
+	options := []slack.MsgOption{slack.MsgOptionBlocks(message.Blocks.BlockSet...)}
+
+	// Respond to a thread if message is from it.
+	if len(threadTimeStamp) > 0 {
+		options = append(options, slack.MsgOptionTS(threadTimeStamp))
+	}
+
+	return options
 }
