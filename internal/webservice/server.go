@@ -102,8 +102,11 @@ func (s *Server) interactiveHandler(_ http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, blockAction := range payload.ActionCallback.BlockActions {
-		if blockAction.ActionID == messages.ActionShowMore {
-			go s.handleExpandAction(ctx, &payload, blockAction)
+		switch blockAction.ActionID {
+		case messages.ActionShowMore:
+			s.handleExpandAction(ctx, &payload, blockAction)
+		case messages.ActionPostPreview:
+			s.handlePostPreviewAction(ctx, &payload, blockAction)
 		}
 	}
 }
@@ -159,7 +162,12 @@ func (s *Server) handleMessage(ctx context.Context, event *slackevents.MessageEv
 	}
 
 	log.Ctx(ctx).Info().Ints("stories", ids).Msg("Received message with pivotal stories mentioned")
-	s.postPreview(ctx, ids, event)
+
+	if s.needToAskForPreview(ids) {
+		s.askForPreview(ctx, event, ids)
+	} else {
+		s.postPreview(ctx, ids, event.Channel, event.ThreadTimeStamp, "")
+	}
 }
 
 func (s *Server) handleExpandAction(ctx context.Context, payload *slack.InteractionCallback, blockAction *slack.BlockAction) {
@@ -185,7 +193,22 @@ func (s *Server) handleExpandAction(ctx context.Context, payload *slack.Interact
 	log.Ctx(ctx).Info().Msg("Ephemeral slack message with details is posted")
 }
 
-func (s *Server) postPreview(ctx context.Context, storyIDs []int, event *slackevents.MessageEvent) {
+func (s *Server) handlePostPreviewAction(ctx context.Context, payload *slack.InteractionCallback, blockAction *slack.BlockAction) {
+	var previewActionData messages.PreviewActionData
+
+	err := json.Unmarshal([]byte(blockAction.Value), &previewActionData)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot parse preview action data")
+	}
+
+	s.postPreview(ctx, previewActionData.StoryIDs, previewActionData.ChannelID,
+		previewActionData.ThreadTimeStamp, payload.ResponseURL)
+}
+
+// `responseURL` is specified when preview is posted in response to interactive action
+// and used to remove a message with interaction after posting.
+// In other cases, can be empty string.
+func (s *Server) postPreview(ctx context.Context, storyIDs []int, channel, threadTimeStamp, responseURL string) {
 	var stories []*pivotal.Story
 
 	for _, id := range storyIDs {
@@ -203,13 +226,38 @@ func (s *Server) postPreview(ctx context.Context, storyIDs []int, event *slackev
 		return
 	}
 
-	messageOptions := messages.MessageForStories(stories, event.ThreadTimeStamp)
+	messageOptions := messages.MessageForStories(stories, threadTimeStamp)
 
-	_, _, err := s.SlackClient.PostMessage(event.Channel, messageOptions...)
+	if len(responseURL) > 0 {
+		messageOptions = append(messageOptions, slack.MsgOptionDeleteOriginal(responseURL))
+	}
+
+	_, _, err := s.SlackClient.PostMessage(channel, messageOptions...)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post slack message in response to mentioned stories")
 		return
 	}
 
 	log.Ctx(ctx).Info().Msg("Slack message with mentioned stories is posted")
+}
+
+func (s *Server) needToAskForPreview(ids []int) bool {
+	// TODO: Make configurable.
+	return len(ids) > 1
+}
+
+func (s *Server) askForPreview(ctx context.Context, event *slackevents.MessageEvent, ids []int) {
+	messageOptions, err := messages.AskForPreviewMessage(event, ids, event.ThreadTimeStamp)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg(err.Error())
+		return
+	}
+
+	_, err = s.SlackClient.PostEphemeral(event.Channel, event.User, messageOptions...)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msgf("Cannot post ephemeral slack message to ask for preview")
+		return
+	}
+
+	log.Ctx(ctx).Info().Msg("User is asked for the need of preview")
 }

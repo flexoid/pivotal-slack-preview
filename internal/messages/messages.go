@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -8,9 +9,19 @@ import (
 
 	"github.com/Logiraptor/go-pivotaltracker/v5/pivotal"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 const ActionShowMore = "show_more"
+const ActionPostPreview = "post_preview"
+
+// Strict is used to serialize data needed for preview posting
+// in response on `post_preview` action.
+type PreviewActionData struct {
+	ChannelID       string `json:"channel"`
+	ThreadTimeStamp string `json:"thread_ts"`
+	StoryIDs        []int  `json:"ids"`
+}
 
 func ExtractStoriesFromMessage(text string) []int {
 	regex := regexp.MustCompile(`pivotaltracker\.com(?:\/n)?\/(?:story\/show|projects\/\d+\/stories)\/(\d+)`)
@@ -83,9 +94,28 @@ func DescriptionMessage(story *pivotal.Story, threadTimeStamp string) []slack.Ms
 	return messageOptions(&message, threadTimeStamp)
 }
 
+func AskForPreviewMessage(event *slackevents.MessageEvent, ids []int, threadTimeStamp string) ([]slack.MsgOption, error) {
+	var sections []slack.Block
+
+	actionData := PreviewActionData{
+		ChannelID:       event.Channel,
+		StoryIDs:        ids,
+		ThreadTimeStamp: event.ThreadTimeStamp,
+	}
+	actionValue, err := json.Marshal(actionData)
+
+	if err != nil {
+		return []slack.MsgOption{}, fmt.Errorf("cannot serialize action data: %v", err)
+	}
+
+	text := slack.NewTextBlockObject(slack.MarkdownType,
+		"Last message refers to multiple stories, post a preview?", false, false)
+	button := slack.NewButtonBlockElement(ActionPostPreview, string(actionValue),
+		slack.NewTextBlockObject(slack.PlainTextType, "Post preview", false, false))
+	sections = append(sections, slack.NewSectionBlock(text, nil, slack.NewAccessory(button)))
 	message := slack.NewBlockMessage(sections...)
 
-	return messageOptions(&message, threadTimeStamp)
+	return messageOptions(&message, threadTimeStamp), nil
 }
 
 func storyHeader(story *pivotal.Story) string {
