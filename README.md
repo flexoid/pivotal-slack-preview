@@ -3,7 +3,17 @@
 Slack app that provides preview of the pivotal tracker stories when story URLs
 are posted to the channels.
 
-![](assets/preview.gif)
+## Features
+
+* Automatically post preview of Pivotal Tracker stories mentioned in the message.
+
+* Expand story details with message only visible to single user.
+
+   ![](assets/overview.gif)
+
+* Configurable number of stories in a single message to ask if preview is needed.
+
+   ![](assets/ask-for-preview.gif)
 
 ## Installation
 
