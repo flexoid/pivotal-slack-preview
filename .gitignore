@@ -1,3 +1,4 @@
 .vscode
 coverage*
 /pivotal-slack-preview
+/.env

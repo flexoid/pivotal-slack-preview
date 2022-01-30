@@ -87,8 +87,11 @@ func DescriptionMessage(story *pivotal.Story, threadTimeStamp string) []slack.Ms
 	headerText := slack.NewTextBlockObject(slack.MarkdownType, storyHeader(story), false, false)
 	sections = append(sections, slack.NewSectionBlock(headerText, nil, nil))
 
-	descriptionText := slack.NewTextBlockObject(slack.MarkdownType, story.Description, false, false)
-	sections = append(sections, slack.NewSectionBlock(descriptionText, nil, nil))
+	if len(story.Description) > 0 {
+		descriptionText := slack.NewTextBlockObject(slack.MarkdownType, story.Description, false, false)
+		sections = append(sections, slack.NewSectionBlock(descriptionText, nil, nil))
+	}
+
 	message := slack.NewBlockMessage(sections...)
 
 	return messageOptions(&message, threadTimeStamp)
